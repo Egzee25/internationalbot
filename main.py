@@ -218,7 +218,7 @@ class Datafetcher:
                     'bet': f"{period if period != 'full' else ''} {bet_desc}",
                     'fair': format_fv(fair),
                     'sharp': sharp_name,
-                    'game': f'{away_team} @ {home_team}{f' {score}' if score else ""}',
+                    'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
                     'sport': sport,
                     'game_info': game_info,
                     'limit': limit,
@@ -271,7 +271,8 @@ class Datafetcher:
                                 'bet': f"{period if period != 'full' else ''} {bet} 3-Way ML",
                                 'fair': format_fv(fair),
                                 'sharp': sharp_name,
-                                'game': f'{away_team} @ {home_team} {score if score else ""}',
+                                'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
+
                                 'sport': sport,
                                 'game_info': game_info,
                                 'limit': sharp_dataget('limit', None)
@@ -406,7 +407,8 @@ class Datafetcher:
                                                 'bet': f"{period if period != 'full' else ''} {bet_desc}",
                                                 'fair': format_fv(fair_american),
                                                 'sharp': sharp_name,
-                                                'game': f'{away_team} @ {home_team} {score if score else ""}',
+                                                'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
+
                                                 'ld': 'ext',
                                                 'sport': sport,
                                                 'game_info': game_info,
@@ -441,7 +443,8 @@ class Datafetcher:
                                             'bet': f"{period if period != 'full' else ''} {bet_desc}",
                                             'fair': format_fv(fair_american),
                                             'sharp': sharp_name,
-                                            'game': f'{away_team} @ {home_team} {score if score else ""}',
+                                            'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
+
                                             'ld': 'calc',
                                             'sport': sport,
                                             'game_info': game_info,
@@ -481,7 +484,8 @@ class Datafetcher:
                                     'bet': f"{period if period != 'full' else ''} {home_team if bet_name == 'home' else away_team} ML",
                                     'fair': format_fv(fair),
                                     'sharp': sharp_name,
-                                    'game': f'{away_team} @ {home_team} {score if score else ""}',
+                                    'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
+
                                     'sport': sport,
                                     'game_info': game_info,
                                     'limit': limit,
