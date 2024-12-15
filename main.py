@@ -539,13 +539,13 @@ async def main():
                                      spread_threshold=1.5, total_threshold=1.5, half_threshold=1.5)
         for e in ev:
 
-            if e['ev'] > -10:
+            if e['ev'] > 2:
                 print(e)
                 history = p.get_odds_history(e['game_info']['sql_key'], e['market'], f'full:{e["market"]}:{e["num"]}')
                 history.reverse()
                 send_graph(history, f'{e["bet"]} {e["odds"]}', f'{e["game"]}:{e["market"]}:{e["num"]}',
                             f'ev: {e["ev"]} qk: {e["qk"]} max: {e["limit"]}', e['game'])
-        await asyncio.sleep(60)
+        await asyncio.sleep(1)
 
 
 
