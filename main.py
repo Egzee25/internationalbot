@@ -1,6 +1,8 @@
 import asyncio
 import json
 import time
+from datetime import datetime
+
 from rapidfuzz import process, fuzz
 
 from httpx import ReadTimeout
@@ -205,7 +207,7 @@ class Datafetcher:
 
             return None, None
 
-        def add_bet_info(bet, name, fair, num, home_team, away_team, period, row, link, odds, market, sharp_name, score, limit):
+        def add_bet_info(bet, name, fair, num, home_team, away_team, period, row, link, odds, market, sharp_name, score, limit, sharp_odds):
             if market == 'total':
                 bet_desc = f'o{num}' if name == 'one' else f'u{num}'
             else:
@@ -226,7 +228,8 @@ class Datafetcher:
                     'game_info': game_info,
                     'limit': limit,
                     'market': market,
-                    'num': num
+                    'num': num,
+                    'sharp_odds': f'{sharp_odds[0]}/{sharp_odds[1]}'
                 })
 
         def process_market_data(market_data, sharp_data, game, period, market, score, sharp_name, game_info):
@@ -320,7 +323,7 @@ class Datafetcher:
                                     bet_one_info = calculate_ev(bet_one_odds, bet_one_fair)
                                     add_bet_info(bet_one_info, 'one', bet_one_fair, num, home_team, away_team, period,
                                                  row,
-                                                 bet_one_link, bet_one_odds, market_name, sharp_name, score, limit)
+                                                 bet_one_link, bet_one_odds, market_name, sharp_name, score, limit, [sharp_bet_one, sharp_bet_two])
 
                                 if bet_two_odds and bet_two_odds != 'N/A':
                                     bet_two_fair = worst_case_amer([sharp_bet_two, sharp_bet_one])
@@ -328,7 +331,7 @@ class Datafetcher:
                                     add_bet_info(bet_two_info, 'two', bet_two_fair, num, home_team, away_team, period,
                                                  row,
                                                  bet_two_link,
-                                                 bet_two_odds, market_name, sharp_name, score, limit)
+                                                 bet_two_odds, market_name, sharp_name, score, limit, [sharp_bet_two, sharp_bet_one])
                             else:
                                 sharp_keys = sorted([float(key) for key in sharp_data.keys()])
                                 closest_number = min(sharp_keys, key=lambda x: abs(x - float(num)))
@@ -370,7 +373,6 @@ class Datafetcher:
                                             return (second_imp - closest_imp) * 2
                                 sharp_closest = sharp_data.get(closest_number)
                                 if sport == 'basketball':
-
                                     sharp_second_closest = sharp_data.get(second_closest_number)
                                     if sharp_second_closest:
                                         closest_fair = float(
@@ -411,56 +413,21 @@ class Datafetcher:
                                                 'fair': format_fv(fair_american),
                                                 'sharp': sharp_name,
                                                 'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
-
                                                 'ld': 'ext',
                                                 'sport': sport,
                                                 'game_info': game_info,
                                                 'limit': limit,
                                                 'market': market,
-                                                'num': num
-                                            })
-                                else:
-                                    if not sharp_closest:
-                                        continue
-                                    fair_american = worst_case_amer([sharp_closest[side[0]], sharp_closest[side[1]]])
-                                    bet_info = bet_data.get(side[0], None)
-                                    if isinstance(bet_info, list):
-                                        odds, link = bet_info
-                                    elif isinstance(bet_info, dict):
-                                        odds, link = bet_info['odds'], bet_info['link']
-                                    else:
-                                        odds, link = bet_info, None
-                                    if odds is None:
-                                        continue
-                                    if isinstance(bet_info, dict) and 'alternate' in bet_info.get('market', '').lower():
-                                        if odds < -120:
-                                            continue
-                                    bet_info = calculate_ev(odds, fair_american)
-                                    if bet_info[0] > ev_threshold:
-                                        rows.append({
-                                            'book': row['book'],
-                                            'odds': format_fv(odds),
-                                            'link': link,
-                                            'ev': round(bet_info[0], 1),
-                                            'qk': round(bet_info[1], 2),
-                                            'bet': f"{period if period != 'full' else ''} {bet_desc}",
-                                            'fair': format_fv(fair_american),
-                                            'sharp': sharp_name,
-                                            'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
+                                                'num': num,
+                                                'sharp_odds': f'{sharp_closest[side[0]]}/{sharp_closest[side[1]]} ({closest_number})'
 
-                                            'ld': 'calc',
-                                            'sport': sport,
-                                            'game_info': game_info,
-                                            'limit': limit,
-                                            'market': market,
-                                            'num': num
-                                        })
+                                            })
 
 
 
                         else:  # moneyline
                             side_2 = 'home' if bet_name == 'away' else 'away'
-                            limit = sharp_data.get('bet_name', {}).get('max', None)
+                            limit = sharp_data.get('max', None)
                             try:
                                 fair = worst_case_amer([sharp_data[bet_name], sharp_data[side_2]])
                             except:
@@ -488,12 +455,12 @@ class Datafetcher:
                                     'fair': format_fv(fair),
                                     'sharp': sharp_name,
                                     'game': f'{away_team} @ {home_team}{" " + score if score else ""}',
-
                                     'sport': sport,
                                     'game_info': game_info,
                                     'limit': limit,
                                     'market': market,
-                                    'num': bet_name
+                                    'num': bet_name,
+                                    'sharp_odds': f'{sharp_data[bet_name]}/{sharp_data[side_2]}'
                                 })
 
         for game, game_data in data.items():
@@ -536,6 +503,7 @@ async def main():
     while True:
         with open('pings.json', 'r') as f:
             old_pings = json.load(f)
+        current_date = datetime.now().strftime('%Y-%m-%d')
         data = await d.run()
         with open('data.json', 'w') as f:
             json.dump(data, f, indent=4)
@@ -543,13 +511,20 @@ async def main():
         ev, ld = Datafetcher.find_ev(data, 'basketball', sharp_name='pin', need_timeout=False, ev_threshold=-100,
                                      spread_threshold=1.5, total_threshold=1.5, half_threshold=1.5)
         for e in ev:
-            if e['ev'] > 2:
+            if e['ev'] > -2:
+                bet_key = f'{e["game_info"]["sql_key"]} {e["market"]} {e["bet"]} {current_date}'
+                if bet_key in old_pings:
+                    continue
                 print(e)
                 history = await p.get_odds_history(e['game_info']['sql_key'], e['market'], f'full:{e["market"]}:{e["num"]}')
                 history.reverse()
                 send_graph(history, f'{e["bet"]} {e["odds"]}', f'{e["game"]}:{e["market"]}:{e["num"]}',
-                            f'ev: {e["ev"]} qk: {e["qk"]} max: {e["limit"]}', f'{e["game"]}: \n{e["game_info"]["league"]}')
-        await asyncio.sleep(1)
+                            f'ev: {e["ev"]} qk: {e["qk"]} \n'
+                            f'pin: {e["sharp_odds"]} \n'
+                            f'max: {e["limit"]:.0f}', f'{e["game"]}: \n{e["game_info"]["league"]}')
+                old_pings.append(bet_key)
+        with open('pings.json', 'w') as f:
+            json.dump(old_pings, f, indent=4)
 
 
 

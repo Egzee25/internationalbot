@@ -256,8 +256,8 @@ class Pinnacle:
         for event in events:
             event_data = {}
             league = event.get('league_name')
-            if 'NBA' in league or 'NCAA' in league:
-                continue
+            '''if 'NBA' in league or 'NCAA' in league:
+                continue'''
 
             home = event.get('home')
             away = event.get('away')
