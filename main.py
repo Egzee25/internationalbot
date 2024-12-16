@@ -110,10 +110,13 @@ class Datafetcher:
     def __init__(self, sport, live):
         self.sport = sport
         self.live = live
-        self.books = [cls(sport) for cls in Classes]
+        self.books = [Betonline(sport)]
         self.periods = period_dict.get(sport)
         self.markets = ['total', 'Money Line', 'spread', '3-way']
         self.pin_data = {}
+
+    async def post_init(self):
+        self.books.append(await Pinnacle.create(self.sport, 'odds_user', 'odds_password'))
 
     async def run(self):
         tasks = [timed_task(book.get_events_data, live=self.live) for book in self.books]
@@ -527,7 +530,9 @@ class Datafetcher:
 
 async def main():
     d = Datafetcher('basketball', live=False)
-    p = Pinnacle('basketball')
+    await d.post_init()
+    p = await Pinnacle.create('basketball', 'odds_user', 'odds_password')
+
     while True:
         with open('pings.json', 'r') as f:
             old_pings = json.load(f)
@@ -538,10 +543,9 @@ async def main():
         ev, ld = Datafetcher.find_ev(data, 'basketball', sharp_name='pin', need_timeout=False, ev_threshold=-100,
                                      spread_threshold=1.5, total_threshold=1.5, half_threshold=1.5)
         for e in ev:
-
             if e['ev'] > 2:
                 print(e)
-                history = p.get_odds_history(e['game_info']['sql_key'], e['market'], f'full:{e["market"]}:{e["num"]}')
+                history = await p.get_odds_history(e['game_info']['sql_key'], e['market'], f'full:{e["market"]}:{e["num"]}')
                 history.reverse()
                 send_graph(history, f'{e["bet"]} {e["odds"]}', f'{e["game"]}:{e["market"]}:{e["num"]}',
                             f'ev: {e["ev"]} qk: {e["qk"]} max: {e["limit"]}', e['game'])

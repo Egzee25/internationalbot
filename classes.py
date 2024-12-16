@@ -5,6 +5,9 @@ import requests
 import pytz
 from datetime import datetime, timezone
 import psycopg2
+import psycopg2.extras
+import asyncpg
+
 
 from tools.devig import dec_to_amer, calculate_vig
 
@@ -20,133 +23,66 @@ class Pinnacle:
         self.limits = {}
         self.timeouts = {}
 
-        # Connect to PostgreSQL
-        self.conn = psycopg2.connect(
-            dbname="odds_data_db",     # Update these credentials as needed
-            user="odds_user",          # Update user
-            password="odds_password",  # Update password
-            host="localhost",          # Update host if needed
-            port=5432                  # Update port if needed
-        )
-
         # Ensure the bookmaker is present
-        self.bookmaker_id = self.get_bookmaker_id("pin", "http://www.pinnacle.com")
+        self.bookmaker_id = None
 
         # Optionally load initial data (prematch)
-        self.data = self.get_all_events_data(live=False)
+        self.data = None
+        self.pool=None
 
-    def get_bookmaker_id(self, name, website=None):
+    @classmethod
+    async def create(cls, sport, db_user, db_pass, db_name='odds_data_db', db_host='localhost', db_port=5432):
+        """
+        Async factory method to create and initialize the Pinnacle instance.
+        """
+        self = cls(sport)
+        # Create asyncpg connection pool
+        self.pool = await asyncpg.create_pool(
+            user=db_user,
+            password=db_pass,
+            database=db_name,
+            host=db_host,
+            port=db_port
+        )
+        self.bookmaker_id = await self.get_bookmaker_id("pin", "http://www.pinnacle.com")
+        # Optionally load initial data
+        self.data = await self.get_all_events_data(live=False)
+        return self
+
+    async def get_bookmaker_id(self, name, website=None):
         now = datetime.now(timezone.utc)
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT bookmaker_id FROM bookmakers WHERE name=%s", (name,))
-            row = cur.fetchone()
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow("SELECT bookmaker_id FROM bookmakers WHERE name=$1", name)
             if row:
-                return row[0]
-
-            cur.execute("""
+                return row['bookmaker_id']
+            row = await conn.fetchrow("""
                 INSERT INTO bookmakers (name, website, created_at, updated_at)
-                VALUES (%s, %s, %s, %s)
+                VALUES ($1, $2, $3, $4)
                 RETURNING bookmaker_id
-            """, (name, website, now, now))
-            bookmaker_id = cur.fetchone()[0]
-        self.conn.commit()
-        return bookmaker_id
+            """, name, website, now, now)
+            return row['bookmaker_id']
 
-    def get_event_id(self, sport, league, home_team, away_team, start_time, event_id):
-        event_id = int(event_id)
-        now = datetime.now(timezone.utc)
-        with self.conn.cursor() as cur:
-            # Check if the event already exists
-            cur.execute("SELECT event_id FROM events WHERE event_id=%s", (event_id,))
-            row = cur.fetchone()
-            if row:
-                # The event is already in the DB
-                return event_id
+    async def get_all_events_data(self, live=True):
+        url = "https://pinnacle-odds.p.rapidapi.com/kit/v1/markets"
+        querystring = {
+            "sport_id": self.id,
+            "is_have_odds": "true",
+            'event_type': 'live' if live else 'prematch'
+        }
+        headers = {
+            "X-RapidAPI-Key": key,
+            "X-RapidAPI-Host": "pinnacle-odds.p.rapidapi.com"
+        }
 
-            # If not, insert it
-            cur.execute("""
-                INSERT INTO events (event_id, sport, league, home_team, away_team, start_time, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING event_id
-            """, (event_id, sport, league, home_team, away_team, start_time, now, now))
-            inserted_id = cur.fetchone()[0]
-        self.conn.commit()
-        return inserted_id
-
-    def get_market_id(self, event_id, bookmaker_id, market_type, selection):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        with self.conn.cursor() as cur:
-            cur.execute("""
-                SELECT market_id FROM markets 
-                WHERE event_id=%s AND bookmaker_id=%s AND market_type=%s AND selection=%s
-            """, (event_id, bookmaker_id, market_type, selection))
-            row = cur.fetchone()
-            if row:
-                return row[0]
-
-            cur.execute("""
-                INSERT INTO markets (event_id, bookmaker_id, market_type, selection, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                RETURNING market_id
-            """, (event_id, bookmaker_id, market_type, selection, now, now))
-            market_id = cur.fetchone()[0]
-        self.conn.commit()
-        return market_id
-
-    def update_odds(self, market_id, new_odds):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT odds FROM current_odds WHERE market_id=%s", (market_id,))
-            row = cur.fetchone()
-            old_odds = row[0] if row else None
-
-            if old_odds != new_odds:
-                # Insert into odds_history
-                cur.execute("""
-                    INSERT INTO odds_history (market_id, old_odds, new_odds, changed_at)
-                    VALUES (%s, %s, %s, %s)
-                """, (market_id, old_odds, new_odds, now))
-
-                if old_odds is None:
-                    # Insert current odds
-                    cur.execute("""
-                        INSERT INTO current_odds (market_id, odds, last_updated)
-                        VALUES (%s, %s, %s)
-                    """, (market_id, new_odds, now))
-                else:
-                    # Update current odds
-                    cur.execute("""
-                        UPDATE current_odds SET odds=%s, last_updated=%s WHERE market_id=%s
-                    """, (new_odds, now, market_id))
-        self.conn.commit()
-
-    def update_limit(self, market_id, new_limit):
-        # Similar logic as update_odds, but for limits
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT max_limit FROM current_limits WHERE market_id=%s", (market_id,))
-            row = cur.fetchone()
-            old_limit = row[0] if row else None
-
-            if old_limit != new_limit:
-                # Insert into limit_history
-                cur.execute("""
-                    INSERT INTO limit_history (market_id, old_limit, new_limit, changed_at)
-                    VALUES (%s, %s, %s, %s)
-                """, (market_id, old_limit, new_limit, now))
-
-                if old_limit is None:
-                    # Insert current limit
-                    cur.execute("""
-                        INSERT INTO current_limits (market_id, max_limit, last_updated)
-                        VALUES (%s, %s, %s)
-                    """, (market_id, new_limit, now))
-                else:
-                    # Update current limit
-                    cur.execute("""
-                        UPDATE current_limits SET max_limit=%s, last_updated=%s WHERE market_id=%s
-                    """, (new_limit, now, market_id))
-        self.conn.commit()
+        resp = requests.get(url, headers=headers, params=querystring)
+        try:
+            data = resp.json()
+            processed = self.process_data(data, live)
+            if processed:
+                await self.update_database(processed)
+            return processed
+        except Exception as e:
+            print(f'Error: {e}')
 
     async def get_events_data(self, live=True):
         url = "https://pinnacle-odds.p.rapidapi.com/kit/v1/markets"
@@ -166,33 +102,147 @@ class Pinnacle:
         data = response.json()
         processed_data = self.process_data(data, live)
         if processed_data:
-            self.update_database(processed_data)
+            await self.update_database(processed_data)
         return processed_data
 
-    def get_all_events_data(self, live=True):
-        url = "https://pinnacle-odds.p.rapidapi.com/kit/v1/markets"
-        querystring = {
-            "sport_id": self.id,
-            "is_have_odds": "true",
-            'event_type': 'live' if live else 'prematch'
-        }
-        headers = {
-            "X-RapidAPI-Key": key,
-            "X-RapidAPI-Host": "pinnacle-odds.p.rapidapi.com"
-        }
+    async def update_database(self, processed_data):
+        if not processed_data:
+            return
 
-        response = requests.get(url, headers=headers, params=querystring)
-        try:
-            data = response.json()
-            processed = self.process_data(data, live)
-            if processed:
-                self.update_database(processed)
-            return processed
-        except Exception as e:
-            print(f'error {e}')
+        # Extract all events and markets
+        events_info = []  # (event_id, sport, league, home_team, away_team, start_time, is_timeout)
+        markets = []
+        odds_temp = []
 
-    def get_game_state(self, data):
-        return data.get('period_results')
+        now = datetime.now(timezone.utc)
+        sport = self.sport
+
+        for event_key, event_data in processed_data.items():
+            if 'info' not in event_data:
+                continue
+
+            league = event_data['info']['league']
+            start_str = event_data['info']['start']
+            external_event_id = event_data['info'].get('sql_key')
+            away_team, home_team = event_key.split(" @ ")
+            dt_utc = datetime.strptime(start_str, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc)
+            is_timeout = event_data['info'].get('is_timeout', False)
+
+            event_id = int(external_event_id)
+            events_info.append((event_id, sport, league, home_team.strip(), away_team.strip(), dt_utc, is_timeout))
+
+            for period_name, period_data in event_data.items():
+                if period_name == 'info':
+                    continue
+                for market_type, market_details in period_data.items():
+                    if market_type in ["Money Line", "3-way"]:
+                        # single or three selection
+                        keys = ['one', 'two', 'three'] if market_type == '3-way' else ['home', 'away']
+                        for k in keys:
+                            if k in market_details and market_details[k] is not None:
+                                sel = f"{period_name}:{market_type}:{k}"
+                                markets.append((event_id, self.bookmaker_id, market_type, sel))
+                                max_limit = market_details.get('max')
+                                odds_temp.append(((event_id, market_type, sel), str(market_details[k]), max_limit))
+                    else:
+                        # spread/total
+                        for line_key, line_info in market_details.items():
+                            one_odds = line_info['one']
+                            two_odds = line_info['two']
+                            alt = line_info['alt']
+                            new_odds_str = f"{one_odds},{two_odds},{alt}"
+                            sel = f"{period_name}:{market_type}:{line_key}"
+                            markets.append((event_id, self.bookmaker_id, market_type, sel))
+                            max_limit = line_info.get('max')
+                            odds_temp.append(((event_id, market_type, sel), new_odds_str, max_limit))
+
+        # Upsert events
+        await self.upsert_events(events_info)
+
+        # Upsert markets
+        market_ids = await self.upsert_markets(markets)
+
+        # Prepare final odds data
+        final_odds_data = []
+        for ((e_id, mtype, sel), odds_str, max_limit) in odds_temp:
+            mid = market_ids.get((e_id, mtype, sel))
+            if mid:
+                final_odds_data.append((mid, odds_str, max_limit))
+
+        await self.bulk_upsert_odds(final_odds_data)
+        print("Database updated with current odds and limits.")
+
+    async def upsert_events(self, events_info):
+        if not events_info:
+            return
+        # Build a query string with placeholders
+        # columns: (event_id, sport, league, home_team, away_team, start_time, created_at, updated_at, is_timeout)
+        now = datetime.now(timezone.utc)
+        values = []
+        for e_id, s, l, h, a, st, timeout in events_info:
+            values.append((e_id, s, l, h, a, st, now, now, timeout))
+
+        # Dynamically build placeholders
+        # We have 9 columns per row
+        rows = []
+        args = []
+        arg_index = 1
+        for row in values:
+            placeholders = []
+            for col in row:
+                placeholders.append(f'${arg_index}')
+                arg_index += 1
+                args.append(col)
+            rows.append(f"({','.join(placeholders)})")
+        rows_str = ",".join(rows)
+
+        query = f"""
+            INSERT INTO events (event_id, sport, league, home_team, away_team, start_time, created_at, updated_at, is_timeout)
+            VALUES {rows_str}
+            ON CONFLICT (event_id) DO UPDATE SET 
+                updated_at=EXCLUDED.updated_at,
+                is_timeout=EXCLUDED.is_timeout
+        """
+
+        async with self.pool.acquire() as conn:
+            await conn.execute(query, *args)
+
+    async def upsert_markets(self, markets):
+        if not markets:
+            return {}
+        # markets: (event_id, bookmaker_id, market_type, selection)
+        # We'll return a dict {(event_id, market_type, selection): market_id}
+        now = datetime.now(timezone.utc)
+        values = []
+        for e_id, b_id, m_t, sel in markets:
+            values.append((e_id, b_id, m_t, sel, now, now))
+
+        rows = []
+        args = []
+        arg_index = 1
+        for row in values:
+            placeholders = []
+            for col in row:
+                placeholders.append(f'${arg_index}')
+                arg_index += 1
+                args.append(col)
+            rows.append(f"({','.join(placeholders)})")
+        rows_str = ",".join(rows)
+
+        query = f"""
+        INSERT INTO markets (event_id, bookmaker_id, market_type, selection, created_at, updated_at)
+        VALUES {rows_str}
+        ON CONFLICT (event_id, bookmaker_id, market_type, selection) DO UPDATE
+        SET updated_at=EXCLUDED.updated_at
+        RETURNING market_id, event_id, market_type, selection;
+        """
+
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch(query, *args)
+
+        market_ids = {(r['event_id'], r['market_type'], r['selection']): r['market_id'] for r in rows}
+        return market_ids
+
 
     def process_data(self, data, live):
         events = data.get('events')
@@ -346,113 +396,157 @@ class Pinnacle:
 
         return processed_data
 
-    def update_database(self, processed_data):
-        if not processed_data:
+    async def bulk_upsert_odds(self, odds_data):
+        if not odds_data:
             return
 
-        sport = self.sport
-        for event_key, event_data in processed_data.items():
-            if 'info' not in event_data:
-                continue
+        # odds_data: (market_id, new_odds_str, max_limit)
+        market_ids = [x[0] for x in odds_data]
 
-            league = event_data['info']['league']
-            start_str = event_data['info']['start']
-            external_event_id = event_data['info'].get('sql_key', None)
-            away_team, home_team = event_key.split(" @ ")
+        # Fetch current odds
+        async with self.pool.acquire() as conn:
+            records = await conn.fetch("SELECT market_id, odds FROM current_odds WHERE market_id = ANY($1)", market_ids)
+        current_map = {r['market_id']: r['odds'] for r in records}
 
-            dt_utc = datetime.strptime(start_str, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=timezone.utc)
-            event_id = self.get_event_id(sport, league, home_team, away_team, dt_utc, external_event_id)
+        history_inserts = []
+        current_inserts = []
+        current_updates = []
 
-            is_timeout = event_data['info'].get('is_timeout', False)
-            with self.conn.cursor() as cur:
-                cur.execute("UPDATE events SET is_timeout=%s WHERE event_id=%s", (is_timeout, event_id))
-            self.conn.commit()
+        limit_history_inserts = []
+        limit_inserts = []
+        limit_updates = []
 
-            # Update odds and limits for each market
-            for period_name, period_data in event_data.items():
-                if period_name == 'info':
-                    continue
+        now = datetime.now(timezone.utc)
 
-                for market_type, market_details in period_data.items():
-                    if market_type in ["Money Line", "3-way"]:
-                        # market_details might have keys like 'home', 'away', 'draw', 'max'
-                        for selection_key, odds_value in market_details.items():
-                            if selection_key in ['home', 'away', 'draw', 'one', 'two', 'three']:
-                                new_odds_str = str(odds_value)
-                                selection = f"{period_name}:{market_type}:{selection_key}"
-                                market_id = self.get_market_id(event_id, self.bookmaker_id, market_type, selection)
-                                self.update_odds(market_id, new_odds_str)
-                                # Update limit if present
-                                max_limit = market_details.get('max')
-                                if max_limit is not None:
-                                    self.update_limit(market_id, max_limit)
-                    else:
-                        # spread/total markets
-                        for line_key, line_info in market_details.items():
-                            # line_info is a dict with 'one', 'two', 'alt', 'max'
-                            new_odds_str = f"{line_info['one']},{line_info['two']},{line_info['alt']}"
-                            selection = f"{period_name}:{market_type}:{line_key}"
-                            market_id = self.get_market_id(event_id, self.bookmaker_id, market_type, selection)
-                            self.update_odds(market_id, new_odds_str)
-                            # Update limit if present
-                            max_limit = line_info.get('max')
-                            if max_limit is not None:
-                                self.update_limit(market_id, max_limit)
+        # Fetch current limits
+        async with self.pool.acquire() as conn:
+            limit_records = await conn.fetch("SELECT market_id, max_limit FROM current_limits WHERE market_id = ANY($1)", market_ids)
+        current_limits_map = {r['market_id']: r['max_limit'] for r in limit_records}
 
-        print("Database updated with current odds and limits.")
+        for (market_id, new_odds_str, max_limit) in odds_data:
+            old_odds = current_map.get(market_id)
+            if old_odds != new_odds_str:
+                history_inserts.append((market_id, old_odds, new_odds_str, now))
+                if old_odds is None:
+                    current_inserts.append((market_id, new_odds_str, now))
+                else:
+                    current_updates.append((new_odds_str, now, market_id))
 
-    def get_odds_history(self, event_id, market_type, selection):
+            old_limit = current_limits_map.get(market_id)
+            if max_limit is not None and max_limit != old_limit:
+                limit_history_inserts.append((market_id, old_limit, max_limit, now))
+                if old_limit is None:
+                    limit_inserts.append((market_id, max_limit, now))
+                else:
+                    limit_updates.append((max_limit, now, market_id))
+
+        async with self.pool.acquire() as conn:
+            # Insert odds_history
+            if history_inserts:
+                # (market_id, old_odds, new_odds, changed_at)
+                await self._execute_many(conn,
+                    "INSERT INTO odds_history (market_id, old_odds, new_odds, changed_at) VALUES ($1, $2, $3, $4)",
+                    history_inserts
+                )
+
+            # current_odds
+            if current_inserts:
+                await self._execute_many(conn,
+                    "INSERT INTO current_odds (market_id, odds, last_updated) VALUES ($1, $2, $3)",
+                    current_inserts
+                )
+            if current_updates:
+                await self._execute_many(conn,
+                    "UPDATE current_odds SET odds=$1, last_updated=$2 WHERE market_id=$3",
+                    current_updates
+                )
+
+            # limits
+            if limit_history_inserts:
+                await self._execute_many(conn,
+                    "INSERT INTO limit_history (market_id, old_limit, new_limit, changed_at) VALUES ($1, $2, $3, $4)",
+                    limit_history_inserts
+                )
+
+            if limit_inserts:
+                await self._execute_many(conn,
+                    "INSERT INTO current_limits (market_id, max_limit, last_updated) VALUES ($1, $2, $3)",
+                    limit_inserts
+                )
+            if limit_updates:
+                await self._execute_many(conn,
+                    "UPDATE current_limits SET max_limit=$1, last_updated=$2 WHERE market_id=$3",
+                    limit_updates
+                )
+
+    async def _execute_many(self, conn, query, args_list):
+        # Helper method to run executemany-style commands in asyncpg
+        # asyncpg doesn't have executemany for DML the same way psycopg2 does,
+        # but we can just run them in a transaction.
+        async with conn.transaction():
+            for args in args_list:
+                await conn.execute(query, *args)
+
+    async def get_odds_history(self, event_id, market_type, selection):
         """
         Retrieve the full odds and limit history for the specified event/market/selection.
-
         Returns a list of dictionaries, each representing a historical change (either odds or limit),
-        sorted by changed_at. Each dictionary includes a 'type' field indicating whether it's an 'odds' or 'limit' change.
+        sorted by changed_at (descending).
         """
+        event_id = int(event_id)
 
-        market_id = self.get_market_id(event_id, self.bookmaker_id, market_type, selection)
+        async with self.pool.acquire() as conn:
+            # First, get the market_id
+            market_id = await conn.fetchval("""
+                SELECT market_id FROM markets 
+                WHERE event_id=$1 AND bookmaker_id=$2 AND market_type=$3 AND selection=$4
+            """, event_id, self.bookmaker_id, market_type, selection)
+
+            if market_id is None:
+                # No such market found
+                return []
+
+            # Fetch odds history
+            odds_rows = await conn.fetch("""
+                SELECT history_id, market_id, old_odds, new_odds, changed_at
+                FROM odds_history
+                WHERE market_id=$1
+                ORDER BY changed_at ASC
+            """, market_id)
+
+            # Fetch limit history
+            limit_rows = await conn.fetch("""
+                SELECT limit_history_id, market_id, old_limit, new_limit, changed_at
+                FROM limit_history
+                WHERE market_id=$1
+                ORDER BY changed_at ASC
+            """, market_id)
 
         changes = []
 
-        with self.conn.cursor() as cur:
-            # Fetch odds history
-            cur.execute("""
-                SELECT history_id, market_id, old_odds, new_odds, changed_at
-                FROM odds_history
-                WHERE market_id = %s
-                ORDER BY changed_at ASC
-            """, (market_id,))
-            odds_rows = cur.fetchall()
+        # Process odds history
+        for row in odds_rows:
+            changes.append({
+                'type': 'odds',
+                'history_id': row['history_id'],
+                'market_id': row['market_id'],
+                'old_value': row['old_odds'],
+                'new_value': row['new_odds'],
+                'changed_at': row['changed_at']
+            })
 
-            for row in odds_rows:
-                changes.append({
-                    'type': 'odds',
-                    'history_id': row[0],
-                    'market_id': row[1],
-                    'old_value': row[2],
-                    'new_value': row[3],
-                    'changed_at': row[4]
-                })
+        # Process limit history
+        for row in limit_rows:
+            changes.append({
+                'type': 'limit',
+                'history_id': row['limit_history_id'],
+                'market_id': row['market_id'],
+                'old_value': str(row['old_limit']) if row['old_limit'] is not None else None,
+                'new_value': str(row['new_limit']) if row['new_limit'] is not None else None,
+                'changed_at': row['changed_at']
+            })
 
-            # Fetch limit history
-            cur.execute("""
-                SELECT limit_history_id, market_id, old_limit, new_limit, changed_at
-                FROM limit_history
-                WHERE market_id = %s
-                ORDER BY changed_at ASC
-            """, (market_id,))
-            limit_rows = cur.fetchall()
-
-            for row in limit_rows:
-                changes.append({
-                    'type': 'limit',
-                    'history_id': row[0],
-                    'market_id': row[1],
-                    'old_value': str(row[2]) if row[2] is not None else None,
-                    'new_value': str(row[3]) if row[3] is not None else None,
-                    'changed_at': row[4]
-                })
-
-        # Combine and sort all changes by changed_at
+        # Sort all changes by changed_at descending
         changes.sort(key=lambda x: x['changed_at'], reverse=True)
 
         return changes
@@ -502,13 +596,14 @@ class Fanduel:
 
 
 async def main():
-    pinnacle = Pinnacle('basketball')
-    data = await pinnacle.get_events_data(live=False)
-    print(data)
-    if data:
-        for k, v in data.items():
-            for period, data in v.items():
-                print(k, period, data)
+    pinnacle = await Pinnacle.create('basketball', 'odds_user', 'odds_password')
+    while True:
+        data = await pinnacle.get_events_data(live=False)
+        print(data)
+        if data:
+            for k, v in data.items():
+                for period, data in v.items():
+                    print(k, period, data)
 
 
 if __name__ == '__main__':
