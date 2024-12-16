@@ -514,7 +514,7 @@ async def main():
         ev, ld = Datafetcher.find_ev(data, 'basketball', sharp_name='pin', need_timeout=False, ev_threshold=-100,
                                      spread_threshold=1.5, total_threshold=1.5, half_threshold=1.5)
         for e in ev:
-            if e['ev'] > 0:
+            if e['ev'] > -2:
                 bet_key = f'{e["game_info"]["sql_key"]} {e["market"]} {e["bet"]} {current_date}'
                 if bet_key in old_pings:
                     continue
