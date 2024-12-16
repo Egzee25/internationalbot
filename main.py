@@ -229,7 +229,8 @@ class Datafetcher:
                     'limit': limit,
                     'market': market,
                     'num': num,
-                    'sharp_odds': f'{sharp_odds[0]}/{sharp_odds[1]}'
+                    'sharp_odds': f'{sharp_odds[0]}/{sharp_odds[1]}',
+                    'side': name
                 })
 
         def process_market_data(market_data, sharp_data, game, period, market, score, sharp_name, game_info):
@@ -419,7 +420,8 @@ class Datafetcher:
                                                 'limit': limit,
                                                 'market': market,
                                                 'num': num,
-                                                'sharp_odds': f'{sharp_closest[side[0]]}/{sharp_closest[side[1]]} ({closest_number})'
+                                                'sharp_odds': f'{sharp_closest[side[0]]}/{sharp_closest[side[1]]} ({closest_number})',
+                                                'side': side[0]
 
                                             })
 
@@ -460,7 +462,8 @@ class Datafetcher:
                                     'limit': limit,
                                     'market': market,
                                     'num': bet_name,
-                                    'sharp_odds': f'{sharp_data[bet_name]}/{sharp_data[side_2]}'
+                                    'sharp_odds': f'{sharp_data[bet_name]}/{sharp_data[side_2]}',
+                                    'side': 'one'
                                 })
 
         for game, game_data in data.items():
@@ -515,13 +518,12 @@ async def main():
                 bet_key = f'{e["game_info"]["sql_key"]} {e["market"]} {e["bet"]} {current_date}'
                 if bet_key in old_pings:
                     continue
-                print(e)
                 history = await p.get_odds_history(e['game_info']['sql_key'], e['market'], f'full:{e["market"]}:{e["num"]}')
                 history.reverse()
                 send_graph(history, f'{e["bet"]} {e["odds"]}', f'{e["game"]}:{e["market"]}:{e["num"]}',
                             f'ev: {e["ev"]} qk: {e["qk"]} \n'
                             f'pin: {e["sharp_odds"]} \n'
-                            f'max: {e["limit"]:.0f}', f'{e["game"]}: \n{e["game_info"]["league"]}')
+                            f'max: {e["limit"]:.0f}', f'{e["game"]}: \n{e["game_info"]["league"]}', e["side"])
                 old_pings.append(bet_key)
         with open('pings.json', 'w') as f:
             json.dump(old_pings, f, indent=4)

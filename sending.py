@@ -1,15 +1,22 @@
 import requests
-from matplotlib.ticker import FuncFormatter
-import matplotlib.pyplot as plt
+import matplotlib
+
+
+
 import numpy as np
 from tools.devig import dec_to_amer, calculate_decimal_odds
 import io
 import httpx
+import time
 import discord
 import json
 
 session = httpx.AsyncClient()
+matplotlib.use('Agg')
 
+from matplotlib.ticker import FuncFormatter
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 def imp_to_american(imp):
     dec = 1 / -imp
@@ -20,7 +27,7 @@ def american_to_imp(american):
     return -1 / calculate_decimal_odds(american)
 
 
-def graph(history, graph_title):
+def graph(history, graph_title, side):
     fig, ax = plt.subplots()
 
     odds_times = []
@@ -31,8 +38,12 @@ def graph(history, graph_title):
     for change in history:
         if change['type'] == 'odds':
             odds_times.append(change['changed_at'])
-            change_odds = float(change['new_value'].split(',')[0])
-            # Convert odds to implied probability first:
+            odds_values = change['new_value'].split(',')
+            if side == 'one':
+                change_odds = float(odds_values[0])
+            else:
+                change_odds = float(odds_values[1])
+            # Convert to implied probability and then to internal representation
             imp = 1 / calculate_decimal_odds(change_odds)
             odds.append(-imp)
         elif change['type'] == 'limit':
@@ -41,32 +52,35 @@ def graph(history, graph_title):
             limits.append(limit)
 
     if len(odds_times) < 2:
-        # Not enough data to plot a meaningful line
         return None
 
     max_time = max(odds_times + limit_times)
-
-    if max_time not in limit_times:
+    if max_time not in limit_times and len(limits) > 0:
         limit_times.append(max_time)
         limits.append(limits[-1])
 
-    if max_time not in odds_times:
+    if max_time not in odds_times and len(odds) > 0:
         odds_times.append(max_time)
         odds.append(odds[-1])
 
-    # Format the primary y-axis for odds as American odds
+    # Convert datetime objects to Matplotlib’s numeric date format
+    odds_times = mdates.date2num(odds_times)
+    limit_times = mdates.date2num(limit_times)
+
+    # Set the Y-axis formatting to American odds using FuncFormatter
     ax.yaxis.set_major_formatter(FuncFormatter(lambda val, pos: imp_to_american(val)))
-    ax.plot(odds_times, odds, color='blue', label='Odds', marker='o')
+
+    # Plot odds
+    ax.plot(odds_times, odds, color='blue', marker='o', label='Odds')
     ax.set_ylabel('Odds (in American)')
 
-    # Create a second y-axis sharing the x-axis
+    # Plot limits on a second Y-axis if present
     if len(limits) > 0:
         ax2 = ax.twinx()
         ax2.plot(limit_times, limits, color='red', label='Limits')
-        ax2.set_ylabel('Limits')  # This axis will show the raw limit values without American odds formatting
+        ax2.set_ylabel('Limits')
         ax2.set_ylim(min(limits) * 0.9, max(limits) * 1.1)
 
-        # Combine legends
         lines1, labels1 = ax.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
         ax2.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
@@ -75,19 +89,27 @@ def graph(history, graph_title):
 
     ax.set_title(graph_title)
 
-    # Save the figure to a BytesIO buffer as a PNG
+    # Set up the x-axis for dates
+    ax.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))
+
+    # Automatically rotate and format x-axis labels
+    fig.autofmt_xdate()
+
+    # Save the figure to a buffer
     buf = io.BytesIO()
     plt.savefig(buf, format='png', dpi=300)
     plt.close(fig)
     buf.seek(0)
 
-    # Return the PNG image as bytes
     return buf.getvalue()
 
 
-def send_graph(history, embed_text, graph_title, embed_subtext, game):
+def send_graph(history, embed_text, graph_title, embed_subtext, game, side):
     webhook_url = 'https://discordapp.com/api/webhooks/1242191264502517870/q3zp3NvnBdOuM3NDqDAl5-mMu13bJpYlGSHVu7_EFJCGH5roOY9PI6w_k2SPhVqq1MNl'
-    image = graph(history, graph_title)
+    t = time.time()
+    image = graph(history, graph_title, side)
+    print(f"Time taken to generate graph: {time.time() - t:.2f}s")
     if image is None:
         print("No graph generated (not enough data).")
         return
@@ -120,12 +142,10 @@ def send_graph(history, embed_text, graph_title, embed_subtext, game):
     data = {
         "payload_json": json.dumps(payload)
     }
-
+    t = time.time()
     response = requests.post(webhook_url, data=data, files=files)
+    print(f"Time taken to send message: {time.time() - t:.2f}s")
     if response.status_code == 200:
         print("Message sent successfully.")
     else:
         print(f"Failed to send message. Status: {response.status_code}, Response: {response.text}")
-
-
-
