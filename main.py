@@ -165,6 +165,8 @@ class Datafetcher:
 
                         dk_timeout = game_info.get('dk_timeout', False)
 
+                        link = game_data.get('link', None)
+
                         row = {
                             'book': book_name,
                             'is_timeout': is_timeout,
@@ -178,6 +180,8 @@ class Datafetcher:
                         view.setdefault(game_name, {}).setdefault(period, {}).setdefault(market, []).append(row)
                         if book_name == 'pin':
                             view[game_name]['info'] = game_info
+                        if link:
+                            view[game_name]['link'] = link
         return view
 
     @staticmethod
@@ -233,7 +237,7 @@ class Datafetcher:
                     'side': name
                 })
 
-        def process_market_data(market_data, sharp_data, game, period, market, score, sharp_name, game_info):
+        def process_market_data(market_data, sharp_data, game, period, market, score, sharp_name, game_info, link):
             away_team, home_team = game.split(' @ ')
             for row in market_data:
                 if row['book'] == sharp_name or row['book'] in ['pin']:
@@ -254,11 +258,11 @@ class Datafetcher:
 
                         fair = worst_case_amer([sharp_data[bet_name], sharp_data[sides[0]], sharp_data[sides[1]]])
                         if isinstance(bet_data, list):
-                            odds, link = bet_data
+                            odds, _ = bet_data
                         elif isinstance(bet_data, dict):
-                            odds, link = bet_data['odds'], bet_data['link']
+                            odds, _ = bet_data['odds'], bet_data['link']
                         else:
-                            odds, link = bet_data, None
+                            odds, _ = bet_data, None
                         ev, qk = calculate_ev(odds, fair)
                         if not ev:
                             continue
@@ -324,14 +328,14 @@ class Datafetcher:
                                     bet_one_info = calculate_ev(bet_one_odds, bet_one_fair)
                                     add_bet_info(bet_one_info, 'one', bet_one_fair, num, home_team, away_team, period,
                                                  row,
-                                                 bet_one_link, bet_one_odds, market_name, sharp_name, score, limit, [sharp_bet_one, sharp_bet_two])
+                                                 link, bet_one_odds, market_name, sharp_name, score, limit, [sharp_bet_one, sharp_bet_two])
 
                                 if bet_two_odds and bet_two_odds != 'N/A':
                                     bet_two_fair = worst_case_amer([sharp_bet_two, sharp_bet_one])
                                     bet_two_info = calculate_ev(bet_two_odds, bet_two_fair)
                                     add_bet_info(bet_two_info, 'two', bet_two_fair, num, home_team, away_team, period,
                                                  row,
-                                                 bet_two_link,
+                                                 link,
                                                  bet_two_odds, market_name, sharp_name, score, limit, [sharp_bet_two, sharp_bet_one])
                             else:
                                 sharp_keys = sorted([float(key) for key in sharp_data.keys()])
@@ -390,11 +394,11 @@ class Datafetcher:
                                         fair_american = dec_to_amer(1 / bet_imp)
                                         bet_info = bet_data.get(side[0], None)
                                         if isinstance(bet_info, list):
-                                            odds, link = bet_info
+                                            odds, _ = bet_info
                                         elif isinstance(bet_info, dict):
-                                            odds, link = bet_info['odds'], bet_info['link']
+                                            odds, _ = bet_info['odds'], bet_info['link']
                                         else:
-                                            odds, link = bet_info, None
+                                            odds = bet_info
                                         if odds is None:
                                             continue
                                         if isinstance(bet_info, dict) and 'alternate' in bet_info.get('market', '').lower():
@@ -421,7 +425,7 @@ class Datafetcher:
                                                 'market': market,
                                                 'num': num,
                                                 'sharp_odds': f'{sharp_closest[side[0]]}/{sharp_closest[side[1]]} ({closest_number})',
-                                                'side': side[0]
+                                                'side': side[0],
 
                                             })
 
@@ -442,7 +446,7 @@ class Datafetcher:
                             elif isinstance(bet_data, dict):
                                 odds, link = bet_data['odds'], bet_data['link']
                             else:
-                                odds, link = bet_data, None
+                                odds = bet_data
                             ev, qk = calculate_ev(odds, fair)
                             if not ev:
                                 continue
@@ -467,11 +471,18 @@ class Datafetcher:
                                 })
 
         for game, game_data in data.items():
-            game_info = game_data.get('info', {})
-            if 'link' in game_data:
-                game_data = game_data['odds']
             for period, period_data in game_data.items():
                 if period == 'info':
+                    continue
+                if period == 'link':
+                    link = period_data
+                    continue
+            game_info = game_data.get('info', {})
+            for period, period_data in game_data.items():
+                if period == 'info':
+                    continue
+                if period == 'link':
+                    link = period_data
                     continue
                 for market_name, market_data in period_data.items():
                     score = None
@@ -491,7 +502,7 @@ class Datafetcher:
                     if not sharp_row or not sharp_row.get('data'):
                         continue
 
-                    process_market_data(market_data, sharp_row['data'], game, period, market_name, score, sharp, game_info)
+                    process_market_data(market_data, sharp_row['data'], game, period, market_name, score, sharp, game_info, link)
 
         return sort_dicts_by_key(rows, 'ev'), sort_dicts_by_key(ld_rows, 'diff')
 
@@ -514,7 +525,8 @@ async def main():
         ev, ld = Datafetcher.find_ev(data, 'basketball', sharp_name='pin', need_timeout=False, ev_threshold=-100,
                                      spread_threshold=1.5, total_threshold=1.5, half_threshold=1.5)
         for e in ev:
-            if e['ev'] > -2:
+            if e['ev'] > -10:
+                print(e)
                 bet_key = f'{e["game_info"]["sql_key"]} {e["market"]} {e["bet"]} {current_date}'
                 if bet_key in old_pings:
                     continue
@@ -523,7 +535,7 @@ async def main():
                 send_graph(history, f'{e["bet"]} {e["odds"]}', f'{e["game"]}:{e["market"]}:{e["num"]}',
                             f'ev: {e["ev"]} qk: {e["qk"]} \n'
                             f'pin: {e["sharp_odds"]} \n'
-                            f'max: {e["limit"]:.0f}', f'{e["game"]}: \n{e["game_info"]["league"]}', e["side"])
+                            f'max: {e["limit"]:.0f}', f'{e["game"]}: \n{e["game_info"]["league"]}', e["side"], e["link"], True)
                 old_pings.append(bet_key)
         with open('pings.json', 'w') as f:
             json.dump(old_pings, f, indent=4)
