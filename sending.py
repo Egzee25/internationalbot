@@ -106,7 +106,7 @@ def graph(history, graph_title, side):
 
 
 def send_graph(history, embed_text, graph_title, embed_subtext, game, side):
-    webhook_url = 'https://discordapp.com/api/webhooks/1242191264502517870/q3zp3NvnBdOuM3NDqDAl5-mMu13bJpYlGSHVu7_EFJCGH5roOY9PI6w_k2SPhVqq1MNl'
+    webhook_url = 'https://discord.com/api/webhooks/1318079744645795900/W9mZH7SWlh1WrSodBysikKTyAXWj7EHDonF58pBzX6f9eXfjkkFQFoi5LQO1AnmQsuTN'
     t = time.time()
     image = graph(history, graph_title, side)
     print(f"Time taken to generate graph: {time.time() - t:.2f}s")
