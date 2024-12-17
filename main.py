@@ -9,6 +9,7 @@ from httpx import ReadTimeout
 from requests.structures import CaseInsensitiveDict
 
 from classes import Pinnacle, Betonline
+from clean import clean_name
 from tools.devig import worst_case_amer, dec_to_amer, calculate_ev, worst_case_amer_to_dec
 from sending import send_graph
 import logging
@@ -150,6 +151,8 @@ class Datafetcher:
                         with open('jsons/team_names.json', 'r') as f:
                             team_names = json.load(f)
                             team_names = CaseInsensitiveDict(team_names)
+                        home_team = clean_name(home_team)
+                        away_team = clean_name(away_team)
                         home_team, away_team = team_names.get(home_team, home_team), team_names.get(away_team, away_team)
                         game_name = f"{away_team} @ {home_team}".title()
                         period_market_data = game_data.get(period, {}).get(market, {})
