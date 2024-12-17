@@ -535,7 +535,7 @@ async def main():
                 send_graph(history, f'{e["bet"]} {e["odds"]}', f'{e["game"]}:{e["market"]}:{e["num"]}',
                             f'ev: {e["ev"]} qk: {e["qk"]} \n'
                             f'pin: {e["sharp_odds"]} \n'
-                            f'max: {e["limit"]:.0f}', f'{e["game"]}: \n{e["game_info"]["league"]}', e["side"], e["link"], True)
+                            f'max: {e["limit"]:.0f}', f'{e["game"]}: \n{e["game_info"]["league"]}', e["side"], e["link"], False)
                 old_pings.append(bet_key)
         with open('pings.json', 'w') as f:
             json.dump(old_pings, f, indent=4)
