@@ -471,6 +471,7 @@ class Datafetcher:
                                 })
 
         for game, game_data in data.items():
+            link = None
             for period, period_data in game_data.items():
                 if period == 'info':
                     continue
