@@ -117,6 +117,10 @@ class Datafetcher:
         self.periods = period_dict.get(sport)
         self.markets = ['total', 'Money Line', 'spread', '3-way']
         self.pin_data = {}
+        with open('league_name_map.json', 'r') as f:
+            self.league_map = CaseInsensitiveDict(json.load(f))
+        with open('jsons/team_names.json', 'r') as f:
+            self.team_map = CaseInsensitiveDict(json.load(f))
 
     async def post_init(self):
         self.books.append(await Pinnacle.create(self.sport, 'odds_user', 'odds_password'))
@@ -144,17 +148,33 @@ class Datafetcher:
                         continue
                     for game_name, game_data in data.items():
                         game_name = game_name.title()
-                        try:
-                            away_team, home_team = game_name.split(' @ ')
-                        except:
-                            continue
-                        with open('jsons/team_names.json', 'r') as f:
-                            team_names = json.load(f)
-                            team_names = CaseInsensitiveDict(team_names)
-                        home_team = clean_name(home_team)
-                        away_team = clean_name(away_team)
-                        home_team, away_team = team_names.get(home_team, home_team), team_names.get(away_team, away_team)
-                        game_name = f"{away_team} @ {home_team}".title()
+                        if book_name != 'pin':
+                            init_league = game_data.get('league')
+                            league = self.league_map.get(init_league)
+                            if not league:
+                                print(f'No league name for {init_league}')
+                                continue
+                            league_name_map = CaseInsensitiveDict(self.team_map.get(league, {}))
+                            if not league_name_map:
+                                print(f'No team map for {league}')
+                                continue
+
+                            try:
+                                init_away_team, init_home_team = game_name.split(' @ ')
+                            except:
+                                continue
+
+
+                            home_team, away_team = league_name_map.get(init_home_team), league_name_map.get(init_away_team)
+                            if not home_team:
+                                print(f'No team name for {init_home_team}, {league}')
+                                continue
+                            if not away_team:
+                                print(f'No team name for {init_away_team}, {league}')
+                                continue
+                            game_name = f"{away_team} @ {home_team}".title()
+                        else:
+                            game_name = game_name.title()
                         period_market_data = game_data.get(period, {}).get(market, {})
                         if not period_market_data:
                             period_market_data = game_data.get('odds', {}).get(period, {}).get(market, {})
