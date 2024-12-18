@@ -105,7 +105,12 @@
       "San Martin Corrientes": "San Martin Corrientes",
       "Ciclista Olimpico": "Ciclista Olimpico de La Banda",
       "Obras Sanitarias": "Obras Sanitarias",
-      "Atenas Cordoba": "Asociacion Deportiva Atenas"
+      "Atenas Cordoba": "Asociacion Deportiva Atenas",
+      "Ferro Carril Oeste": "Ferro",
+      "La Union Formosa": "La Union",
+      "Independiente De Oliva": "Independiente de Oliva",
+      "Penarol": "Penarol Mar del Plata"
+
   },
   "Korean - Basketball League": {
     "Busan Sonicboom": "KT Sonicboom",
@@ -193,10 +198,20 @@
   },
   "Uruguay - Liga": {
       "Trouville": "Trouville",
-      "Aguada": "Aguada"
+      "Aguada": "Aguada",
+      "Hebraica y Macabi": "Hebraica Macabi",
+      "Club Bigua": "Bigua"
   },
   "Colombia - LBP": {
       "Caribbean Storm Islands": "Caribbean Storm Islands",
       "Motilones del Norte": "Motilones del Norte"
+  },
+  "Slovenia - 1. SKL": {
+    "Krka Novo Mesto": "KK Krka",
+    "Tajfun Sentjur": "Tajfun Sentjur"
+  },
+  "Germany - Bundesliga": {
+    "Ludwigsburg": "MHP Riesen Ludwigsburg",
+    "Mitteldeutscher BC": "Mitteldeutscher BC"
   }
 }
