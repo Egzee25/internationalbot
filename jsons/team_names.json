@@ -1,7 +1,9 @@
 {
   "Europe - Euroleague": {
       "Crvena zvezda": "Kk Crvena Zvezda",
-      "Anadolu Efes": "Anadolu Efes SK"
+      "Anadolu Efes": "Anadolu Efes SK",
+      "Olympiakos": "BC Olympiakos Piraeus",
+      "Virtus Bologna": "Real Madrid"
     },
   "Europe - Euroleague Women": {
       "Familia Schio": "PF Schio",
@@ -125,7 +127,11 @@
       "Pinheiros/SKY": "EC Pinheiros SP",
       "Sao Jose": "Sao Jose",
       "Corinthians Basquete": "Corinthians Paulista",
-      "Mogi das Cruzes": "Mogi das Cruzes"
+      "Mogi das Cruzes": "Mogi das Cruzes",
+      "Bauru": "Bauru Basket SP",
+      "Botafogo": "Botafogo",
+      "Paulistano": "CA Paulistano SP",
+      "Brasilia": "Brasilia Basquete"
   },
   "Denmark - Basketligaen": {
       "Randers Cimbria": "Randers Cimbria",

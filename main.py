@@ -150,6 +150,8 @@ class Datafetcher:
                         game_name = game_name.title()
                         if book_name != 'pin':
                             init_league = game_data.get('league')
+                            if not init_league:
+                                continue
                             league = self.league_map.get(init_league)
                             if not league:
                                 print(f'No league name for {init_league}')
