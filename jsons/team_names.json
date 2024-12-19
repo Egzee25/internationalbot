@@ -3,7 +3,9 @@
       "Crvena zvezda": "Kk Crvena Zvezda",
       "Anadolu Efes": "Anadolu Efes SK",
       "Olympiakos": "BC Olympiakos Piraeus",
-      "Virtus Bologna": "Real Madrid"
+      "Virtus Bologna": "Real Madrid",
+      "Monaco": "AS Monaco",
+      "Real Madrid": "Real Madrid"
     },
   "Europe - Euroleague Women": {
       "Familia Schio": "PF Schio",
@@ -29,7 +31,8 @@
       "Venezia": "Reyer Venezia",
       "JL Bourg Basket": "JL Bourg Basket",
       "Universitatea Cluj": "U BT Cluj Napoca",
-      "Valencia": "Valencia Basket"
+      "Valencia": "Valencia Basket",
+      "Lietkabelis": "BC Lietkabelis"
   },
   "Europe - Eurocup Women": {
     "Lattes Montpellier": "Basket Lattes Montpellier",
@@ -47,7 +50,11 @@
     "Charnay Basket": "Charnay Basket Burgundy",
     "Ibaeta": "CD Ibaeta",
     "Dinamo Banco di Sardegna Sassari": "Dinamo Sassari",
-    "Probelte Jairis": "Jaris"
+    "Probelte Jairis": "Jaris",
+    "Universitario Ferrol": "Univ. de Ferrol",
+    "Royal Castors Braine": "Royal Castors Braine",
+    "Unigirona": "Spar Citylift Girona",
+    "Magnolia Campobasso": "Magnolia Basket"
   },
   "Europe - VTB United League": {
     "CSKA Moscow": "CSKA Moscow",
@@ -89,7 +96,11 @@
       "Guangdong": "Guangdong Southern Tigers",
       "Nanjing Tongxi": "Nanjing Monkey Kings",
       "Tianjin Pioneer": "Tianjin Pioneers",
-      "Xinjiang Flying Tigers": "Xinjiang Flying Tigers"
+      "Xinjiang Flying Tigers": "Xinjiang Flying Tigers",
+      "Sichuan": "Sichuan Blue Whales",
+      "Ningbo Fubon Rocket": "Ningbo Rockets",
+      "Zhejiang Golden Bulls": "Zhejiang Golden Bulls",
+      "Beijing Royal Fighters": "Beijing Royal Fighters"
   },
   "China - WCBA": {
       "Fujian Xiamen Egrets": "Fujian Xiamen Egret",
@@ -109,12 +120,18 @@
       "Ferro Carril Oeste": "Ferro",
       "La Union Formosa": "La Union",
       "Independiente De Oliva": "Independiente de Oliva",
-      "Penarol": "Penarol Mar del Plata"
-
+      "Penarol": "Penarol Mar del Plata",
+      "Instituto Cordoba": "Instituto De Cordoba",
+      "Gimnasia Y Esgrima (Cr)": "Club Gimnasia & Esgrima Comodoro Rivadavia",
+      "Quimsa": "Asociacion Atletica Quimsa",
+      "Platense": "Platense"
   },
   "Korean - Basketball League": {
     "Busan Sonicboom": "KT Sonicboom",
-    "Goyang Orions": "Goyang Carrot Jumpers"
+    "Goyang Orions": "Goyang Carrot Jumpers",
+    "Jeonju KCC Egis": "KCC Egis",
+    "Changwon LG Sakers": "Changwon LG Sakers",
+    "Daegu Pegasus": "Daegu Kogas Pegasus"
   },
   "East Asia Super League": {
     "Meralco Bolts": "Meralco Bolts",
@@ -126,7 +143,9 @@
       "Sydney Uni Flames": "Sydney Uni Flames",
       "Townsville Fire": "Townsville Fire",
       "Perth Lynx": "Perth Lynx",
-      "Bendigo Spirit": "Bendigo Spirit"
+      "Bendigo Spirit": "Bendigo Spirit",
+      "Adelaide Lightning": "Adelaide Lightning",
+      "Southside Flyers": "Southside Flyers"
   },
   "Brazil - Novo Basquete Brasil": {
       "Pinheiros/SKY": "EC Pinheiros SP",
@@ -136,13 +155,18 @@
       "Bauru": "Bauru Basket SP",
       "Botafogo": "Botafogo",
       "Paulistano": "CA Paulistano SP",
-      "Brasilia": "Brasilia Basquete"
+      "Brasilia": "Brasilia Basquete",
+      "Pato": "Pato Basquete",
+      "Unifacisa": "Unifacisa",
+      "Fortaleza B.C": "Fortaleza Basquete Cearense"
   },
   "Denmark - Basketligaen": {
       "Randers Cimbria": "Randers Cimbria",
       "EBAA": "Bears Academy",
       "Herlev Wolfpack": "BMS Herlev",
-      "Horsens": "Horsens IC"
+      "Horsens": "Horsens IC",
+      "Holbaek": "Holbaek",
+      "Svendborg": "Svendborg Rabbits"
   },
   "FIBA - Champions League Americas": {
       "Toros Chiriqui": "Toros de Chiriqui David",
@@ -194,13 +218,22 @@
       "Magnolia Hotshots": "Magnolia Hotshots",
       "Rain or Shine Painters": "Rain or Shine Elasto Painters",
       "Mahindra Enforcers": "Terrafirma Dyip",
-      "Barangay Ginebra": "Barangay Ginebra"
+      "Barangay Ginebra": "Barangay Ginebra",
+      "Hong Kong Eastern": "Eastern",
+      "Global Port Batang Pier": "NorthPort Batang Pier",
+      "NLEX Road Warriors": "NLEX Road Warriors"
   },
   "Uruguay - Liga": {
       "Trouville": "Trouville",
       "Aguada": "Aguada",
       "Hebraica y Macabi": "Hebraica Macabi",
-      "Club Bigua": "Bigua"
+      "Club Bigua": "Bigua",
+      "Malvin": "Club Malvin",
+      "Atletico Cordon": "CA Cordon",
+      "Nacional": "Club Nacional",
+      "Urunday Universitario": "Urunday Universitario",
+      "Defensor Sporting": "Defensor Sporting",
+      "Penarol": "CA Penarol"
   },
   "Colombia - LBP": {
       "Caribbean Storm Islands": "Caribbean Storm Islands",
@@ -213,5 +246,22 @@
   "Germany - Bundesliga": {
     "Ludwigsburg": "MHP Riesen Ludwigsburg",
     "Mitteldeutscher BC": "Mitteldeutscher BC"
+  },
+  "Australia - NBL": {
+    "Sydney Kings": "Sydney Kings",
+    "NZ Breakers": "New Zealand Breakers",
+    "Cairns Taipans": "Cairns Taipans",
+    "Bullets": "Brisbane Bullets"
+  },
+  "ABA - Adriatic League": {
+    "Cibona": "KK Cibona",
+    "Mega": "KK Mega Basket",
+    "Dubai": "BC Dubai",
+    "Split": "Kk Split"
+
+  },
+  "Poland - Basket Liga": {
+    "MKS Start Lublin": "MKS Start SA Lublin",
+    "Dziki Warszawa": "Legia Warszawa"
   }
 }
