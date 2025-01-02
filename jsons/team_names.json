@@ -5,7 +5,12 @@
       "Olympiakos": "BC Olympiakos Piraeus",
       "Virtus Bologna": "Real Madrid",
       "Monaco": "AS Monaco",
-      "Real Madrid": "Real Madrid"
+      "Real Madrid": "Real Madrid",
+      "Zalgiris": "BC Zalgiris Kaunas",
+      "Olimpia Milano": "Olimpia Milano",
+      "Asvel Lyon": "Asvel Villeurbanne",
+      "Alba Berlin": "Alba Berlin",
+      "Saski Baskonia": "Baskonia Vitoria Gasteiz"
     },
   "Europe - Euroleague Women": {
       "Familia Schio": "PF Schio",
@@ -32,7 +37,10 @@
       "JL Bourg Basket": "JL Bourg Basket",
       "Universitatea Cluj": "U BT Cluj Napoca",
       "Valencia": "Valencia Basket",
-      "Lietkabelis": "BC Lietkabelis"
+      "Lietkabelis": "BC Lietkabelis",
+      "Aris Thessaloniki": "Aris Thessaloniki BC",
+      "Hapoel Jerusalem": "Hapoel Jerusalem",
+      "Gran Canaria": "CB Gran Canaria"
   },
   "Europe - Eurocup Women": {
     "Lattes Montpellier": "Basket Lattes Montpellier",
@@ -110,7 +118,16 @@
       "Shanghai BD": "Shanghai Swordfish",
       "Zhejiang": "Zhejiang Chouzhou Bank",
       "Heilongjiang Shangdong": "Daqing Rural Commercial Bank",
-      "Tianjin": "Tianjin"
+      "Tianjin": "Tianjin",
+      "Jiangsu": "Jiangsu Phoenix",
+      "Fujian": "Fujian",
+      "Beijing Jinyu": "Beijing Great Wall",
+      "Shanxi Xing Rui Flame": "Shanxi Xing Rui Flame",
+      "Xinjiang": "Xinjiang Magic Deer",
+      "Guangdong": "Guangdong Vermilion Birds",
+      "Nei Menggu Mongolia": "Guangdong Vermilion Birds",
+      "Hefei": "Hefei"
+
   },
   "Argentina - Liga Nacional": {
       "San Martin Corrientes": "San Martin Corrientes",
@@ -131,7 +148,9 @@
     "Goyang Orions": "Goyang Carrot Jumpers",
     "Jeonju KCC Egis": "KCC Egis",
     "Changwon LG Sakers": "Changwon LG Sakers",
-    "Daegu Pegasus": "Daegu Kogas Pegasus"
+    "Daegu Pegasus": "Daegu Kogas Pegasus",
+    "Seoul Thunders": "Samsung Thunders",
+    "Wonju Dongbu Promy": "Dongbu Promy"
   },
   "East Asia Super League": {
     "Meralco Bolts": "Meralco Bolts",
@@ -145,7 +164,9 @@
       "Perth Lynx": "Perth Lynx",
       "Bendigo Spirit": "Bendigo Spirit",
       "Adelaide Lightning": "Adelaide Lightning",
-      "Southside Flyers": "Southside Flyers"
+      "Southside Flyers": "Southside Flyers",
+      "Uc Capital Women": "Canberra Capitals"
+
   },
   "Brazil - Novo Basquete Brasil": {
       "Pinheiros/SKY": "EC Pinheiros SP",
@@ -241,17 +262,21 @@
   },
   "Slovenia - 1. SKL": {
     "Krka Novo Mesto": "KK Krka",
-    "Tajfun Sentjur": "Tajfun Sentjur"
+    "Tajfun Sentjur": "Tajfun Sentjur",
+    "Helios Domzale": "KK Helios Suns"
   },
   "Germany - Bundesliga": {
     "Ludwigsburg": "MHP Riesen Ludwigsburg",
-    "Mitteldeutscher BC": "Mitteldeutscher BC"
+    "Mitteldeutscher BC": "Mitteldeutscher BC",
+    "Ratiopharm Ulm": "Ulm Basketball",
+    "Brose Baskets": "Brose Bamberg"
   },
   "Australia - NBL": {
     "Sydney Kings": "Sydney Kings",
     "NZ Breakers": "New Zealand Breakers",
     "Cairns Taipans": "Cairns Taipans",
-    "Bullets": "Brisbane Bullets"
+    "Bullets": "Brisbane Bullets",
+    "South East Melbourne Phoenix": "South East Melbourne Phoenix"
   },
   "ABA - Adriatic League": {
     "Cibona": "KK Cibona",
@@ -263,5 +288,16 @@
   "Poland - Basket Liga": {
     "MKS Start Lublin": "MKS Start SA Lublin",
     "Dziki Warszawa": "Legia Warszawa"
+  },
+  "Spain - ACB": {
+        "River Andorra": "BC Andorra",
+        "Bilbao": "Bilbao Basket",
+        "Manresa": "Basquet Manresa",
+        "Breogan Lugo": "CB Breogan",
+        "Unicaja Malaga": "CB Malaga",
+        "UCAM Murcia": "UCAM Murcia",
+        "Murcia": "UCAM Murcia",
+        "CAI Zaragoza": "Basket Zaragoza 2002",
+        "CB 1939 Canarias": "CB 1939 Canarias"
   }
 }
